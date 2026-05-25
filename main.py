@@ -8,9 +8,7 @@ from typing import List, Optional
 from enum import Enum
 from reportlab.pdfgen import canvas
 
-
 # Model Entity
-
 class StatusPesanan(Enum):
     menunggu     = "menunggu"
     diterima     = "diterima"
@@ -19,10 +17,7 @@ class StatusPesanan(Enum):
     selesai      = "selesai"
     Ditolak      = "Ditolak"
 
-urutan_status = [
-    StatusPesanan.menunggu, StatusPesanan.diterima,
-    StatusPesanan.diproses, StatusPesanan.siap_diambil, StatusPesanan.selesai,
-]
+urutan_status = [ StatusPesanan.menunggu, StatusPesanan.diterima, StatusPesanan.diproses, StatusPesanan.siap_diambil, StatusPesanan.selesai ]
 
 class Menu:
     def __init__(self, id: int, nama: str, harga: float, tersedia: bool = True):
@@ -64,7 +59,6 @@ class Transaksi:
 
 
 # Interfaces Repository
-
 class IPesananRepository(ABC):
     @abstractmethod
     def get_all(self) -> List[Pesanan]: pass
@@ -101,7 +95,6 @@ class ITransaksiRepository(ABC):
 
 
 # In Memory Repository
-
 class _BaseRepo:
     def __init__(self): self._storage = []
     def get_all(self): return list(self._storage)
@@ -116,7 +109,9 @@ class PesananRepository(_BaseRepo, IPesananRepository):
     def add(self, pesanan): self._storage.append(pesanan)
     def update_status(self, id, status):
         p = self._find(id)
-        if p: p.status = status; return True
+        if p: 
+            p.status = status; 
+            return True
         return False
     def delete(self, id): return self._remove(id)
 
@@ -125,7 +120,8 @@ class MenuRepository(_BaseRepo, IMenuRepository):
     def add(self, menu): self._storage.append(menu)
     def update(self, menu):
         e = self._find(menu.id)
-        if e: e.nama, e.harga, e.tersedia = menu.nama, menu.harga, menu.tersedia; return True
+        if e: 
+            e.nama, e.harga, e.tersedia = menu.nama, menu.harga, menu.tersedia; return True
         return False
     def delete(self, id): return self._remove(id)
 
@@ -139,7 +135,6 @@ class TransaksiRepository(_BaseRepo, ITransaksiRepository):
 
 
 # Services
-
 class PesananService:
     def __init__(self, pesanan_repo: IPesananRepository, transaksi_repo: ITransaksiRepository):
         self._pr, self._tr, self._next_trx_id = pesanan_repo, transaksi_repo, 1
@@ -148,7 +143,8 @@ class PesananService:
 
     def terima_pesanan(self, id: int) -> str:
         p = self._pr.get_by_id(id)
-        if not p: return f"[ERROR] Pesanan ID {id} tidak ditemukan."
+        if not p: 
+            return f"[ERROR] Pesanan ID {id} tidak ditemukan."
         if p.status != StatusPesanan.menunggu:
             return f"[ERROR] Status bukan menunggu (saat ini: {p.status.value})."
         self._pr.update_status(id, StatusPesanan.diterima)
@@ -157,14 +153,17 @@ class PesananService:
 
     def tolak_pesanan(self, id: int) -> str:
         p = self._pr.get_by_id(id)
-        if not p: return f"[ERROR] Pesanan ID {id} tidak ditemukan."
-        if p.status != StatusPesanan.menunggu: return "[ERROR] Hanya pesanan menunggu yang dapat Ditolak."
+        if not p: 
+            return f"[ERROR] Pesanan ID {id} tidak ditemukan."
+        if p.status != StatusPesanan.menunggu: 
+            return "[ERROR] Hanya pesanan menunggu yang dapat Ditolak."
         self._pr.update_status(id, StatusPesanan.Ditolak)
         return f"[OK] Pesanan ID {id} Ditolak."
 
     def update_status(self, id: int, status_baru: StatusPesanan) -> str:
         p = self._pr.get_by_id(id)
-        if not p: return f"[ERROR] Pesanan ID {id} tidak ditemukan."
+        if not p: 
+            return f"[ERROR] Pesanan ID {id} tidak ditemukan."
         if p.status not in urutan_status or status_baru not in urutan_status:
             return "[ERROR] Transisi status tidak valid."
         if urutan_status.index(status_baru) != urutan_status.index(p.status) + 1:
@@ -216,7 +215,6 @@ class LaporanService:
 
 
 # Controllers
-
 class PesananController:
     def __init__(self, service: PesananService): self._s = service
 
@@ -251,9 +249,8 @@ class LaporanController:
 
 
 # Main Program
-
 def main():
-    print("\nTCanteen Repository Pattern Demo\nSistem Pemesanan Kantin TI ITS\n" + "-"*60)
+    print("\nTCanteen Repository Pattern Demo\nSistem Pemesanan Kantin TC\n" + "-"*60)
 
     pesanan_repo   = PesananRepository()
     menu_repo      = MenuRepository()
@@ -262,9 +259,16 @@ def main():
     pesanan_ctrl = PesananController(PesananService(pesanan_repo, transaksi_repo))
     laporan_ctrl = LaporanController(LaporanService(transaksi_repo))
 
-    for args in [(1,"Nasi Goreng Spesial",15000),(2,"Ayam Bakar",18000),(3,"Es Teh Manis",5000),
-                 (4,"Mie Goreng",13000),(5,"Jus Alpukat",10000)]:
-        menu_repo.add(Menu(*args))
+    data_menu = [
+        (1, "Nasi Goreng Spesial", 15000),
+        (2, "Ayam Bakar", 18000),
+        (3, "Es Teh Manis", 5000),
+        (4, "Mie Goreng", 13000),
+        (5, "Jus Alpukat", 10000)
+    ]
+
+    for id, nama, harga in data_menu:
+        menu_repo.add(Menu(id, nama, harga))
 
     print("\n[MENU TERSEDIA]")
     for m in menu_repo.get_all(): print(f"  {m}")
@@ -276,22 +280,21 @@ def main():
 
     pesanan_ctrl.tampilkan_daftar_pesanan()
 
-    print("\n[AKSI PETUGAS — UC04]")
+    print("\n[UC04: Terima Pesanan]")
     pesanan_ctrl.terima_pesanan(1); pesanan_ctrl.terima_pesanan(2)
     pesanan_ctrl.tolak_pesanan(3);  pesanan_ctrl.terima_pesanan(3)
 
-    print("\n[AKSI PETUGAS — UC06: Update Status]")
+    print("\n[UC06: Update Status Pesanan]")
     S = StatusPesanan
     for id, st in [(1,S.diproses),(1,S.siap_diambil),(1,S.selesai),(1,S.diproses),
                    (2,S.selesai),(2,S.diproses),(2,S.siap_diambil),(2,S.selesai)]:
         pesanan_ctrl.update_status(id, st)
 
-    print("\n[LAPORAN — UC07 & UC07.1]")
+    print("\n[UC07 & UC07.1: Laporan]")
     lap = laporan_ctrl.tampilkan_laporan(datetime(2024,1,1), datetime(2099,12,31))
     laporan_ctrl.unduh_laporan_pdf(lap)
 
     pesanan_ctrl.tampilkan_daftar_pesanan()
-    print("\nDemo selesai.\n" + "-"*60)
 
 
 if __name__ == "__main__":
